@@ -12,7 +12,7 @@ The Reddit Subreddit Stats is a web application built to display statistics for 
 ## How to Use
 
 1. Clone the repository to your local machine.
-2. Update the `appsettings.json` file or use User-Secrets to provide your Reddit API credentials. These credentials are necessary for authenticating with the Reddit API.
+2. Update the `appsettings.json` file or use User-Secrets in `\SubRedditStatsWeb` to provide your Reddit API credentials. These credentials are necessary for authenticating with the Reddit API.
 3. Build and run the application using Visual Studio or your preferred IDE.
 4. Enter the name of the subreddit you want to get statistics for and click the "Fetch Data" button.
 5. The application will display the requested statistics, including top posts, top users, post flair distribution, and image vs text post ratio.
