@@ -1,0 +1,156 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+
+<style>
+    .stats-data {
+        margin-left: 15px;
+        background-color: #8080800f;
+        width: fit-content;
+        padding: 15px;
+    }
+</style>
+<div class="text-center">
+    <h2>Subreddit Stats</h2>
+    <input type="text" id="subreddit-input" placeholder="Enter subreddit name" value="gaming" />
+    <button id="fetch-data-btn">Fetch Data</button>
+    <div id="loading-indicator" style="display:none;">Loading...</div>
+    <p id="refresh-countdown">Refreshing in 5...</p>
+    <p id="error-message" style="color: red;"></p>
+</div>
+
+<h2>Top Posts</h2>
+<p>Top 5 latest posts based on upvotes.</p>
+<ul id="top-posts" class="stats-data"></ul>
+
+<h2>Top Users</h2>
+<p>Top 5 users with the latest 5 'top' posts in the subreddit.</p>
+<ul id="top-users" class="stats-data"></ul>
+
+<h2>Post Flair Distribution</h2>
+<p>Distribution of post flairs within the subreddit, within the newest 100 posts.</p>
+<ul id="post-flair-distribution" class="stats-data"></ul>
+
+<h2>Image vs Text Post Ratio</h2>
+<p>Ratio of image posts to text posts within the subreddit, within the newest 100 posts.</p>
+<p id="image-text-post-ratio" class="stats-data"></p>
+
+<div class="text-center">
+    <h5>Rate Limit Information</h5>
+    <p id="rate-limit-info"></p>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            let countdownInterval;
+            let refreshInterval;
+            const refreshRate = 5000;
+
+            function startCountdown() {
+                let counter = refreshRate / 1000;
+                $('#refresh-countdown').text(`Refreshing in ${counter}...`).show();
+                clearInterval(countdownInterval);
+                countdownInterval = setInterval(function () {
+                    counter--;
+                    $('#refresh-countdown').text(`Refreshing in ${counter}...`);
+                    if (counter <= 0) {
+                        clearInterval(countdownInterval);
+                        fetchData($('#subreddit-input').val());
+                    }
+                }, 1000);
+            }
+
+            function fetchData(subreddit) {
+                $('#loading-indicator').show();
+                $('#refresh-countdown').hide();
+                $.ajax({
+                    url: '@Url.Action("GetSubredditStats", "Home")',
+                    type: 'GET',
+                    data: { subreddit: subreddit },
+                    dataType: 'json',
+                    success: function (data) {
+                        $('#loading-indicator').hide();
+                        if (data.error) {
+                            if (data.rateLimit) {
+                                var rateLimitInfo = $('#rate-limit-info');
+                                var rateLimitUsed = data.rateLimit.rateLimitUsed;
+                                var rateLimitRemaining = data.rateLimit.rateLimitRemaining;
+                                var rateLimitReset = data.rateLimit.rateLimitReset;
+                                rateLimitInfo.text(`Rate Limit Used: ${rateLimitUsed}, Remaining: ${rateLimitRemaining}, Reset in: ${rateLimitReset} seconds`);
+
+                                if (rateLimitReset) {
+                                    var waitTime = Math.ceil(rateLimitReset - Date.now() / 1000);
+                                    showError(`Rate limit exceeded. Please wait ${waitTime} seconds before reloading.`);
+                                    return;
+                                }
+                            }
+                            showError(data.error);
+                            return;
+                        }
+
+                        var topPosts = $('#top-posts');
+                        topPosts.empty();
+                        $.each(data.topPosts, function (index, post) {
+                            topPosts.append('<li>' + post.title + ' (Upvotes: ' + post.upVotes + ')</li>');
+                        });
+
+                        var topUsers = $('#top-users');
+                        topUsers.empty();
+                        $.each(data.topUsers, function (index, user) {
+                            topUsers.append('<li>' + user.userName + ' (Posts: ' + user.postCount + ')</li>');
+                        });
+
+                        var postFlairDistribution = $('#post-flair-distribution');
+                        postFlairDistribution.empty();
+                        $.each(data.postFlairDistribution, function (flair, count) {
+                            postFlairDistribution.append('<li>' + flair + ': ' + count + '</li>');
+                        });
+
+                        var imageTextPostRatio = $('#image-text-post-ratio');
+                        var totalPosts = data.imageTextPostRatio.imagePosts + data.imageTextPostRatio.textPosts;
+                        var imageRatio = (data.imageTextPostRatio.imagePosts / totalPosts) * 100;
+                        var textRatio = (data.imageTextPostRatio.textPosts / totalPosts) * 100;
+                        imageTextPostRatio.text(`Image Posts: ${imageRatio.toFixed(2)}%, Text Posts: ${textRatio.toFixed(2)}%`);
+
+                        var rateLimitInfo = $('#rate-limit-info');
+                        var rateLimitUsed = data.rateLimit.rateLimitUsed;
+                        var rateLimitRemaining = data.rateLimit.rateLimitRemaining;
+                        var rateLimitReset = data.rateLimit.rateLimitReset;
+                        rateLimitInfo.text(`Rate Limit Used: ${rateLimitUsed}, Remaining: ${rateLimitRemaining}, Reset in: ${rateLimitReset} seconds`);
+
+                        startCountdown();
+                    },
+                    error: function (xhr, status, error) {
+                        $('#loading-indicator').hide();
+                        if (!status) {
+                            status = "Unknown Status";
+                        }
+                        if (!error) {
+                            error = "Unknown Error";
+                        }
+                        showError(`Unknown error: ${error}`);
+                    }
+                });
+            }
+
+            function showError(message) {
+                $('#error-message').text(message).show();
+            }
+
+            $('#fetch-data-btn').click(function () {
+                var subreddit = $('#subreddit-input').val();
+                if (subreddit) {
+                    clearInterval(countdownInterval);
+                    clearInterval(refreshInterval);
+                    fetchData(subreddit);
+                } else {
+                    showError('Please enter a subreddit name');
+                }
+            });
+
+            // Initial load
+            fetchData('gaming');
+        });
+    </script>
+}
