@@ -38,4 +38,4 @@ Replace `YOUR_APP_ID`, `YOUR_APP_SECRET`, `YOUR_APP_CODE`, `YOUR_USER_AGENT`, an
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
